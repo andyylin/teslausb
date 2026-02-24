@@ -82,6 +82,11 @@ export SHARE_PASSWORD='password'
 #export ARCHIVE_SAVEDCLIPS=false
 #export ARCHIVE_SENTRYCLIPS=false
 #export ARCHIVE_TRACKMODECLIPS=false
+#
+# Optionally limit SavedClips uploads to only the latest N minutes per event.
+# This keeps the tail end of each saved dashcam clip (for example, 3 minutes)
+# to reduce upload time and cloud storage usage.
+#export ARCHIVE_SAVEDCLIPS_MINUTES=3
 
 # Notes on sd card and image sizes:
 #   * A 128 GB or larger sd card (or USB drive, when using Pi4) is recommended.

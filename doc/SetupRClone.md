@@ -18,10 +18,12 @@ The easiest way to to configure teslausb for rclone is:
 - add the RCLONE_DRIVE and RCLONE_PATH variables to the config, according to the values you used when you configured the rclone remote.
   RCLONE_DRIVE should be a name shown by `rclone listremotes`, and RCLONE_PATH should be a path that exists on the named remote, i.e. `rclone ls "$RCLONE_DRIVE:$RCLONE_PATH"` should not print an error (but it may print nothing, if the path is newly created and currently empty).
 - optionally populate RCLONE_FLAGS with flags to add to the command, i.e. RCLONE_FLAGS=(--checksum). To specify multiple flags: RCLONE_FLAGS=(--flag1 --flag2)
+- optionally set ARCHIVE_SAVEDCLIPS_MINUTES to keep only the latest N minutes of each SavedClips event when archiving (for example, 3 to keep the last 3 minutes)
   ```
   export RCLONE_DRIVE="remotename"
   export RCLONE_PATH="remotepathname"
   export RCLONE_FLAGS=()
+  export ARCHIVE_SAVEDCLIPS_MINUTES=3
   ```
 - run `/root/bin/setup-teslausb`
 

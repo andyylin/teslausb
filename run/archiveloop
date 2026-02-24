@@ -342,6 +342,98 @@ function intersect {
   mv /tmp/prune_tmp.$$ "$1"
 }
 
+function limit_savedclips_minutes {
+  local -r list_file="$1"
+  local -r limit_minutes="${ARCHIVE_SAVEDCLIPS_MINUTES:-}"
+
+  if [ -z "${limit_minutes}" ]
+  then
+    return
+  fi
+
+  if ! [[ "${limit_minutes}" =~ ^[0-9]+$ ]]
+  then
+    log "Ignoring ARCHIVE_SAVEDCLIPS_MINUTES='${limit_minutes}' (must be a positive integer)"
+    return
+  fi
+
+  if [ "${limit_minutes}" -lt 1 ]
+  then
+    log "Ignoring ARCHIVE_SAVEDCLIPS_MINUTES='${limit_minutes}' (must be >= 1)"
+    return
+  fi
+
+  local dropped_count
+  if ! dropped_count=$(python3 - "$list_file" "$limit_minutes" <<'PY'
+import datetime
+import re
+import sys
+
+list_path = sys.argv[1]
+limit_minutes = int(sys.argv[2])
+timestamp_pattern = re.compile(r"(\d{4}-\d{2}-\d{2}_\d{2}-\d{2}-\d{2})")
+
+with open(list_path, encoding="utf-8", errors="ignore") as infile:
+    lines = [line.rstrip("\n") for line in infile]
+
+entries = []
+max_timestamp_by_event = {}
+
+for line in lines:
+    if not line.startswith("SavedClips/"):
+        entries.append((line, None, None))
+        continue
+
+    parts = line.split("/", 2)
+    event_key = "/".join(parts[:2]) if len(parts) >= 2 else "SavedClips"
+
+    match = timestamp_pattern.search(line)
+    if not match:
+        entries.append((line, event_key, None))
+        continue
+
+    try:
+        timestamp = int(datetime.datetime.strptime(match.group(1), "%Y-%m-%d_%H-%M-%S").replace(tzinfo=datetime.timezone.utc).timestamp())
+    except ValueError:
+        entries.append((line, event_key, None))
+        continue
+
+    entries.append((line, event_key, timestamp))
+    previous = max_timestamp_by_event.get(event_key)
+    if previous is None or timestamp > previous:
+        max_timestamp_by_event[event_key] = timestamp
+
+keep_lines = []
+dropped = 0
+
+for line, event_key, timestamp in entries:
+    if event_key is None or timestamp is None:
+        keep_lines.append(line)
+        continue
+
+    cutoff = max_timestamp_by_event[event_key] - ((limit_minutes - 1) * 60)
+    if timestamp >= cutoff:
+        keep_lines.append(line)
+    else:
+        dropped += 1
+
+with open(list_path, "w", encoding="utf-8") as outfile:
+    for line in keep_lines:
+        outfile.write(f"{line}\n")
+
+print(dropped)
+PY
+); then
+    log "Failed to enforce ARCHIVE_SAVEDCLIPS_MINUTES=${limit_minutes}; continuing with full SavedClips set"
+    return
+  fi
+
+  if [ "$dropped_count" -gt 0 ]
+  then
+    log "Pruned ${dropped_count} SavedClips file(s) older than the last ${limit_minutes} minute(s) per event."
+  fi
+}
+
 function clean_cam_mount {
 
   local mode="${1:-}"
@@ -501,6 +593,9 @@ function archive_teslacam_clips () {
 
   # apply custom removals/additions
   filterfile "${sentrylist}"
+
+  # Optionally keep only the latest N minutes of each SavedClips event.
+  limit_savedclips_minutes "${sentrylist}"
 
   local -r sentry_count=$(grep -c -v TeslaTrackMode "$sentrylist")
   local -r trackmode_count=$(grep -c TeslaTrackMode "$sentrylist")
