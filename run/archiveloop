@@ -387,13 +387,18 @@ for line in lines:
     parts = line.split("/", 2)
     event_key = "/".join(parts[:2]) if len(parts) >= 2 else "SavedClips"
 
-    match = timestamp_pattern.search(line)
-    if not match:
+    matches = timestamp_pattern.findall(line)
+    if not matches:
         entries.append((line, event_key, None))
         continue
 
+    # SavedClips paths contain two timestamps:
+    #   SavedClips/<event_timestamp>/<clip_timestamp>-*.mp4
+    # We must use the clip timestamp (last match), not the event folder timestamp.
+    clip_timestamp = matches[-1]
+
     try:
-        timestamp = int(datetime.datetime.strptime(match.group(1), "%Y-%m-%d_%H-%M-%S").replace(tzinfo=datetime.timezone.utc).timestamp())
+        timestamp = int(datetime.datetime.strptime(clip_timestamp, "%Y-%m-%d_%H-%M-%S").replace(tzinfo=datetime.timezone.utc).timestamp())
     except ValueError:
         entries.append((line, event_key, None))
         continue
