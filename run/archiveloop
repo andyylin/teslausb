@@ -502,6 +502,22 @@ function archive_teslacam_clips () {
   # apply custom removals/additions
   filterfile "${sentrylist}"
 
+  # Optional: archive only the last N minutes of SavedClips footage for each
+  # SavedClips event folder. 0 keeps existing behavior (archive all).
+  local -r archive_savedclips_last_minutes=${ARCHIVE_SAVEDCLIPS_LAST_MINUTES:-0}
+  if [[ "${archive_savedclips_last_minutes}" =~ ^[0-9]+$ ]] && [ "${archive_savedclips_last_minutes}" -gt 0 ]
+  then
+    if command -v python3 > /dev/null
+    then
+      python3 /root/bin/filter_savedclips_window.py --list "${sentrylist}" --minutes "${archive_savedclips_last_minutes}" ||         log "SavedClips minute-window filter failed, continuing without it"
+    else
+      log "python3 not available, skipping SavedClips minute-window filter"
+    fi
+  elif ! [[ "${archive_savedclips_last_minutes}" =~ ^[0-9]+$ ]]
+  then
+    log "Invalid ARCHIVE_SAVEDCLIPS_LAST_MINUTES=${archive_savedclips_last_minutes}, expected a non-negative integer"
+  fi
+
   local -r sentry_count=$(grep -c -v TeslaTrackMode "$sentrylist")
   local -r trackmode_count=$(grep -c TeslaTrackMode "$sentrylist")
   local -r ignore_count=$(wc -l < "$ignorelist")
