@@ -371,7 +371,7 @@ import sys
 
 list_path = sys.argv[1]
 limit_minutes = int(sys.argv[2])
-timestamp_pattern = re.compile(r"(\d{4}-\d{2}-\d{2}_\d{2}-\d{2}-\d{2})")
+clip_timestamp_pattern = re.compile(r"^(\d{4}-\d{2}-\d{2}_\d{2}-\d{2}-\d{2})(?:-(?:back|front|left_pillar|left_repeater|right_pillar|right_repeater))?\.mp4$")
 
 with open(list_path, encoding="utf-8", errors="ignore") as infile:
     lines = [line.rstrip("\n") for line in infile]
@@ -387,18 +387,14 @@ for line in lines:
     parts = line.split("/", 2)
     event_key = "/".join(parts[:2]) if len(parts) >= 2 else "SavedClips"
 
-    matches = timestamp_pattern.findall(line)
-    if not matches:
+    filename = line.rsplit("/", 1)[-1]
+    match = clip_timestamp_pattern.match(filename)
+    if not match:
         entries.append((line, event_key, None))
         continue
 
-    # SavedClips paths contain two timestamps:
-    #   SavedClips/<event_timestamp>/<clip_timestamp>-*.mp4
-    # We must use the clip timestamp (last match), not the event folder timestamp.
-    clip_timestamp = matches[-1]
-
     try:
-        timestamp = int(datetime.datetime.strptime(clip_timestamp, "%Y-%m-%d_%H-%M-%S").replace(tzinfo=datetime.timezone.utc).timestamp())
+        timestamp = int(datetime.datetime.strptime(match.group(1), "%Y-%m-%d_%H-%M-%S").replace(tzinfo=datetime.timezone.utc).timestamp())
     except ValueError:
         entries.append((line, event_key, None))
         continue
