@@ -1,5 +1,20 @@
 # teslausb
 
+> [!NOTE]
+> This is a public fork of [`marcone/teslausb`](https://github.com/marcone/teslausb).
+> 
+> Fork-specific addition: optional `ARCHIVE_SAVEDCLIPS_MINUTES` to archive/upload only the latest **N minutes** of `SavedClips` clip files per event.
+> 
+> Example:
+> ```bash
+> export ARCHIVE_SAVEDCLIPS_MINUTES=3
+> ```
+> 
+> - Unset/invalid value: upstream behavior (no minute-window pruning)
+> - Feature implementation branch: [`feature/archive-savedclips-minutes`](https://github.com/andyylin/teslausb/tree/feature/archive-savedclips-minutes)
+>
+> See also: [`doc/SetupRClone.md`](doc/SetupRClone.md) and `teslausb_setup_variables.conf.sample`.
+
 ## Intro
 
 Raspberry Pi and other [SBCs](## "Single Board Computers") can emulate a USB drive, so can act as a drive for your Tesla to write dashcam footage to. Because the SBC has full access to the emulated drive, it can:
