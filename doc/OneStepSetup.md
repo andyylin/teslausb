@@ -8,6 +8,17 @@ This is a streamlined process for setting up the Pi. You'll flash a preconfigure
 - This image will work for either _headless_ (tested) or _manual_ (tested less) setup.
 - Currently not tested with the rclone method when using headless setup, however you can specify 'none' as the archive method in the config file, which will configure the pi as a wifi-accessible USB drive, so you can then [configure rclone](./SetupRClone.md) or [configure rsync](./SetupRSync.md) and rerun the setup-teslausb script.
 
+## Fork-specific option (andyylin/teslausb)
+
+This fork adds an optional setting to reduce how much SavedClips footage is archived/uploaded:
+
+```bash
+export ARCHIVE_SAVEDCLIPS_MINUTES=3
+```
+
+When set to a positive integer, only the latest **N minutes** of `SavedClips` clip files are included per event.
+If unset or invalid, behavior is unchanged from upstream.
+
 ## Configure the SD card before first boot of the Pi
 
 1.  Flash the [latest image release](https://github.com/marcone/teslausb/releases/latest) using [Raspberry Pi Imager](https://www.raspberrypi.com/software/) or a similar flashing tool.
