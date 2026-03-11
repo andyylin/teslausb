@@ -84,9 +84,9 @@ export SHARE_PASSWORD='password'
 #export ARCHIVE_TRACKMODECLIPS=false
 
 # Optional: archive only the last N minutes of footage from each SavedClips
-# event folder. Default is 0 (archive all SavedClips footage).
-# Example: set to 3 to upload only the last ~3 minutes of each Saved event.
-#export ARCHIVE_SAVEDCLIPS_LAST_MINUTES=3
+# event folder. Default is 3 minutes for new installs.
+# Set to 0 to archive all SavedClips footage instead.
+export ARCHIVE_SAVEDCLIPS_LAST_MINUTES=3
 
 # Notes on sd card and image sizes:
 #   * A 128 GB or larger sd card (or USB drive, when using Pi4) is recommended.
