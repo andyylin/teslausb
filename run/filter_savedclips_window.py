@@ -42,6 +42,10 @@ def main() -> int:
         required=True,
         help="Minutes of SavedClips footage to keep per event folder",
     )
+    parser.add_argument(
+        "--removed-list",
+        help="Optional path to write filtered-out SavedClips entries",
+    )
     args = parser.parse_args()
 
     if args.minutes < 0:
@@ -51,7 +55,12 @@ def main() -> int:
     with open(list_path, "r", encoding="utf-8") as f:
         lines = [line.rstrip("\n") for line in f]
 
+    removed_lines: list[str] = []
     if args.minutes == 0:
+        if args.removed_list:
+            with open(args.removed_list, "w", encoding="utf-8") as f:
+                for line in removed_lines:
+                    f.write(f"{line}\n")
         return 0
 
     max_ts_by_event: dict[str, dt.datetime] = {}
@@ -95,10 +104,17 @@ def main() -> int:
         cutoff = max_ts - dt.timedelta(minutes=args.minutes)
         if ts >= cutoff:
             out_lines.append(relpath)
+        else:
+            removed_lines.append(relpath)
 
     with open(list_path, "w", encoding="utf-8") as f:
         for line in out_lines:
             f.write(f"{line}\n")
+
+    if args.removed_list:
+        with open(args.removed_list, "w", encoding="utf-8") as f:
+            for line in removed_lines:
+                f.write(f"{line}\n")
 
     return 0
 
