@@ -2,18 +2,23 @@
 
 > [!NOTE]
 > This is a public fork of [`marcone/teslausb`](https://github.com/marcone/teslausb).
-> 
-> Fork-specific addition: optional `ARCHIVE_SAVEDCLIPS_MINUTES` to archive/upload only the latest **N minutes** of `SavedClips` clip files per event.
-> 
-> Example:
-> ```bash
-> export ARCHIVE_SAVEDCLIPS_MINUTES=3
-> ```
-> 
-> - Unset/invalid value: upstream behavior (no minute-window pruning)
-> - Feature implementation branch: [`feature/archive-savedclips-minutes`](https://github.com/andyylin/teslausb/tree/feature/archive-savedclips-minutes)
 >
-> See also: [`doc/SetupRClone.md`](doc/SetupRClone.md) and `teslausb_setup_variables.conf.sample`.
+> This default branch tracks upstream and carries two local additions:
+>
+> 1. `ARCHIVE_SAVEDCLIPS_LAST_MINUTES` archives/uploads only the latest **N minutes** of `SavedClips` clip files per event.
+> 2. [`rotate-lockchime.sh`](rotate-lockchime.sh) safely rotates `LockChime.wav` from a configured directory of WAV files.
+>
+> Example:
+>
+> ```bash
+> export ARCHIVE_SAVEDCLIPS_LAST_MINUTES=3
+> ```
+>
+> - New installs default to three minutes through the sample configuration.
+> - Set the value to `0`, or leave it unset on an existing installation, to retain upstream behavior and archive all SavedClips footage.
+> - Invalid values are rejected and the archive proceeds without minute-window pruning.
+>
+> See also: [`doc/OneStepSetup.md`](doc/OneStepSetup.md), [`doc/LockChimeRotation.md`](doc/LockChimeRotation.md), and `teslausb_setup_variables.conf.sample`.
 
 ## Intro
 

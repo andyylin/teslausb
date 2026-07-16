@@ -13,11 +13,12 @@ This is a streamlined process for setting up the Pi. You'll flash a preconfigure
 This fork adds an optional setting to reduce how much SavedClips footage is archived/uploaded:
 
 ```bash
-export ARCHIVE_SAVEDCLIPS_MINUTES=3
+export ARCHIVE_SAVEDCLIPS_LAST_MINUTES=3
 ```
 
-When set to a positive integer, only the latest **N minutes** of `SavedClips` clip files are included per event.
-If unset or invalid, behavior is unchanged from upstream.
+When set to a positive integer, only the latest **N minutes** of `SavedClips` clip files are included per event. New installs default to three minutes through the sample configuration. Set it to `0`, or leave it unset on an existing installation, to archive all SavedClips footage. Invalid values are rejected and archiving continues without minute-window pruning.
+
+This fork also includes an optional [LockChime rotation helper](./LockChimeRotation.md).
 
 ## Configure the SD card before first boot of the Pi
 
