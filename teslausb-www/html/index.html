@@ -798,6 +798,12 @@ video {
   display: none;
 }
 
+.status_throttled {
+  display: none;
+  color: #c40000;
+  white-space: pre-line;
+}
+
 </style>
 </head>
 <body>
@@ -864,6 +870,9 @@ video {
       <div class="pistatus">
         <div class="status_uptime"></div>
         <div class="status_temp"></div>
+        <div class="status_fan"></div>
+        <div class="status_external_5v"></div>
+        <div class="status_rtc_batt_v"></div>
         <div class="status_drives"></div>
         <div class="status_space"></div>
         <div class="status_snapshots"></div>
@@ -890,6 +899,7 @@ video {
             </svg>
           </span>
         </div>
+        <div class="status_throttled"></div>
       </div>
       <button class="group2" id="toggledrives" onclick="toggledrivesfunc();">...</button>
       <p>
@@ -1255,7 +1265,7 @@ function starttailing({url, pre, button}) {
         var scrollpos=pre.scrollTop+pre.clientHeight;
         var scrollheight=pre.scrollHeight;
         var shouldgotobottom=(Math.abs(scrollpos-scrollheight) < 5)
-        pre.textContent+=request.responseText.substring(1);
+        pre.appendChild(document.createTextNode(request.responseText.substring(1)));
         if (shouldgotobottom) {
           pre.scrollTo(left,pre.scrollHeight);
         }
@@ -1712,8 +1722,65 @@ function showstatus() {
       if (statusvals.cpu_temp != "") {
         tempdiv.innerText = "Core temperature: " + (statusvals.cpu_temp / 1000).toFixed(1) + " C";
         tempdiv.style.display = "inherit";
-      } else{
+      } else {
         tempdiv.style.display = "none";
+      }
+
+      var fandiv = document.querySelector(".status_fan");
+      if (statusvals.fan_speed != "" && statusvals.fan_speed != "N/A") {
+        fandiv.innerText = "Fan speed: " + statusvals.fan_speed + " RPM";
+        fandiv.style.display = "inherit";
+      } else {
+        fandiv.style.display = "none";
+      }
+
+      var external5vdiv = document.querySelector(".status_external_5v");
+      if (statusvals.external_5v != "" && statusvals.external_5v != "N/A") {
+        external5vdiv.innerText = "External 5V: " + parseFloat(statusvals.external_5v).toFixed(3) + " V";
+        external5vdiv.style.display = "inherit";
+      } else {
+        external5vdiv.style.display = "none";
+      }
+
+      var rtcbattvdiv = document.querySelector(".status_rtc_batt_v");
+      if (statusvals.rtc_batt_v != "" && statusvals.rtc_batt_v != "N/A" && parseFloat(statusvals.rtc_batt_v) >= 2.5) {
+        rtcbattvdiv.innerText = "RTC Battery: " + parseFloat(statusvals.rtc_batt_v).toFixed(3) + " V";
+        rtcbattvdiv.style.display = "inherit";
+      } else {
+        rtcbattvdiv.style.display = "none";
+      }
+
+      var throttleddiv = document.querySelector(".status_throttled");
+      if (statusvals.throttled != "" && statusvals.throttled != "N/A") {
+        var throttledbits = parseInt(statusvals.throttled, 16);
+        if (!Number.isNaN(throttledbits)) {
+          var throttledflags = [
+            [0, "Undervoltage detected"],
+            [1, "Arm frequency capped"],
+            [2, "Currently throttled"],
+            [3, "Soft temperature limit active"],
+            [16, "Undervoltage has occurred since last reboot"],
+            [17, "Arm frequency capping has occurred since last reboot"],
+            [18, "Throttling has occurred since last reboot"],
+            [19, "Soft temperature limit has occurred since last reboot"]
+          ];
+          var throttledlines = [];
+          for (var flag of throttledflags) {
+            if ((throttledbits & (1 << flag[0])) != 0) {
+              throttledlines.push(flag[1]);
+            }
+          }
+          if (throttledlines.length > 0) {
+            throttleddiv.innerText = throttledlines.join("\n");
+            throttleddiv.style.display = "inherit";
+          } else {
+            throttleddiv.style.display = "none";
+          }
+        } else {
+          throttleddiv.style.display = "none";
+        }
+      } else {
+        throttleddiv.style.display = "none";
       }
 
       var drivesdiv = document.querySelector(".status_drives");

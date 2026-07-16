@@ -226,6 +226,12 @@ export CAM_SIZE=40G
 # export NOTIFICATION_COMMAND_START="ssh root@remote-server 'command args'"
 # export NOTIFICATION_COMMAND_FINISH="ssh root@remote-server 'command args'"
 
+# Uncomment if setting up ntfy notifications
+#export NTFY_ENABLED=true
+#export NTFY_URL=https://ntfy.example.com/yourtopic
+#export NTFY_TOKEN=your_token_if_needed
+#export NTFY_PRIORITY=3
+
 # Tesla_dashcam / Trigger file support.
 # Uncomment any TRIGGER_FILE_xxxxx below to create trigger file(s) in the
 # archive directory for the listed clip type after all clips have been
