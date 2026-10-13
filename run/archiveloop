@@ -431,6 +431,14 @@ function clean_cam_mount {
     trim_free_space "$CAM_MOUNT"
   fi
 
+  if [ "$mode" = "boot" ] && [ -x /root/bin/rotate-lockchime.sh ]
+  then
+    # The cam image is already mounted and the gadget is not up yet.
+    # Publish the startup chime here. The 15-minute timer only swaps the
+    # file later and does not reconnect USB.
+    /root/bin/rotate-lockchime.sh --use-mount || log "lockchime startup rotation skipped"
+  fi
+
   unmount_cam_file
 
   log "done cleaning cam mount"

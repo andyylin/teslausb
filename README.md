@@ -6,7 +6,7 @@
 > This default branch tracks upstream and carries two local additions:
 >
 > 1. `ARCHIVE_SAVEDCLIPS_LAST_MINUTES` archives/uploads only the latest **N minutes** of `SavedClips` clip files per event.
-> 2. [`rotate-lockchime.sh`](rotate-lockchime.sh) safely rotates `LockChime.wav` from a configured directory of WAV files.
+> 2. [`rotate-lockchime.sh`](rotate-lockchime.sh) swaps `LockChime.wav` from a configured directory of WAV files at startup and every 15 minutes, and leaves the USB gadget connected.
 >
 > Example:
 >
