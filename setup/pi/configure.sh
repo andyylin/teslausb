@@ -371,6 +371,8 @@ function install_archive_scripts () {
   copy_script run/awake_start "$install_path"
   copy_script run/awake_stop "$install_path"
   copy_script run/filter_savedclips_window.py "$install_path"
+  copy_script rotate-lockchime.sh "$install_path"
+  copy_script run/lockchime_inplace.py "$install_path"
   log_progress "Installing archive module scripts"
   copy_script "$archive_module"/verify-and-configure-archive.sh /tmp
   copy_script "$archive_module"/archive-clips.sh "$install_path"
@@ -830,3 +832,33 @@ WantedBy=backingfiles.mount
 EOF
 
 systemctl enable teslausb.service
+
+# Rotate LockChime.wav on boot (the archiveloop hook) and every 15 minutes.
+# The timer unit never reconnects the USB gadget. Without the config file
+# the service does not start.
+cat << EOF > /lib/systemd/system/lockchime-rotate.service
+[Unit]
+Description=Rotate Tesla LockChime
+After=teslausb.service
+ConditionPathExists=/etc/default/lockchime-rotate
+
+[Service]
+Type=oneshot
+ExecStart=/root/bin/rotate-lockchime.sh
+EOF
+
+cat << EOF > /lib/systemd/system/lockchime-rotate.timer
+[Unit]
+Description=Rotate Tesla LockChime every 15 minutes
+
+[Timer]
+OnBootSec=15min
+OnUnitActiveSec=15min
+AccuracySec=30s
+
+[Install]
+WantedBy=timers.target
+EOF
+
+systemctl daemon-reload || true
+systemctl enable lockchime-rotate.timer || true

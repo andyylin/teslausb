@@ -95,11 +95,20 @@ function timestamp () {
 
 function fix_errors_in_image () {
   local image="$1"
+  local loopback
   log "Running fsck on $image..."
-  loopback=$(losetup_find_show -P "$image")
+  # losetup -f races when several images are set up at once; fsck itself
+  # can run in parallel once each image has its own loop device.
+  {
+    flock 8
+    loopback=$(losetup_find_show -P "$image")
+  } 8>/tmp/teslausb-losetup.lock
   # Use -p repair arg. It works with vfat and exfat.
   /sbin/fsck "${loopback}p1" -- -p |& timestamp '| ' >> "$LOG_FILE" || echo ""
-  losetup -d "$loopback"
+  {
+    flock 8
+    losetup -d "$loopback"
+  } 8>/tmp/teslausb-losetup.lock
   log "Finished fsck on $image."
 }
 
@@ -280,14 +289,24 @@ function trim_free_space() {
 }
 
 function fix_errors_in_images () {
+  local i img pid
+  local -a pids=()
   for i in cam music boombox lightshow
   do
     img="/backingfiles/${i}_disk.bin"
     if [ -e "$img" ]
     then
-      fix_errors_in_image "$img"
+      fix_errors_in_image "$img" &
+      pids+=("$!")
     fi
   done
+  if [ "${#pids[@]}" -gt 0 ]
+  then
+    for pid in "${pids[@]}"
+    do
+      wait "$pid" || true
+    done
+  fi
 }
 
 function disconnect_usb_drives_from_host () {
@@ -368,8 +387,13 @@ function clean_cam_mount {
   # that were deleted previously by the car or teslausb
   find "${CAM_MOUNT}" \( \( -type f -name FSCK\*.REC \) -o \( -type f -name "*~[0-9].MP4" \) \) -print0 | xargs -0 rm -rf
 
-  # Delete short recordings
-  (cd "${CAM_MOUNT}"; find . -type f -name \*.mp4 -size -100000c -printf '%P\n' ) | xargs rm -rf
+  # Delete short recordings. Skip this on the boot path: it stats every
+  # clip and runs before the car is allowed to see the drive. The
+  # freespace clean still removes them after archive.
+  if [ "$mode" != "boot" ]
+  then
+    (cd "${CAM_MOUNT}"; find . -type f -name \*.mp4 -size -100000c -printf '%P\n' ) | xargs rm -rf
+  fi
 
   if [ "$mode" = "freespace" ]
   then
@@ -400,7 +424,20 @@ function clean_cam_mount {
     "$CAM_MOUNT/TeslaCam/SentryClips" "$CAM_MOUNT/TeslaTrackMode" -mindepth 1 -type d -empty -delete || true
 
   # Trim the camera archive to reduce the number of blocks in the snapshot.
-  trim_free_space "$CAM_MOUNT"
+  # fstrim walks free space and can take a long time on a large cam image.
+  # Boot calls this before the car is shown the drive, so trim only after archive.
+  if [ "$mode" != "boot" ]
+  then
+    trim_free_space "$CAM_MOUNT"
+  fi
+
+  if [ "$mode" = "boot" ] && [ -x /root/bin/rotate-lockchime.sh ]
+  then
+    # The cam image is already mounted and the gadget is not up yet.
+    # Publish the startup chime here. The 15-minute timer only swaps the
+    # file later and does not reconnect USB.
+    /root/bin/rotate-lockchime.sh --use-mount || log "lockchime startup rotation skipped"
+  fi
 
   unmount_cam_file
 
@@ -740,7 +777,9 @@ function set_time () {
   local -r clocktime_start=$(date +%s.%N)
   for _ in {1..5}
   do
-    if sntp -S time.google.com || ntpdig -S time.google.com || sntp -S 129.6.15.28 || ntpdig -S 129.6.15.28 #(time-a-g.nist.gov)
+    # Bound each query. A hung resolver or NTP server otherwise stalls
+    # the archive loop with no timeout of its own.
+    if timeout 3 sntp -S time.google.com || timeout 3 ntpdig -S time.google.com || timeout 3 sntp -S 129.6.15.28 || timeout 3 ntpdig -S 129.6.15.28 #(time-a-g.nist.gov)
     then
       local -r uptime_end=$(awk '{print $1}' /proc/uptime)
       local -r clocktime_end=$(date +%s.%N)
@@ -877,13 +916,16 @@ fix_errors_in_images
 # always remove files that fsck recoverd
 clean_cam_mount boot
 
+# Hand the car the drive before the snapshot walk. make_snapshot copies
+# the image with a reflink and does not need the gadget disconnected;
+# the steady-state loop already snapshots while the car is attached.
+connect_usb_drives_to_host
+
 if has_cam_disk
 then
   # don't need another fsck because fix_errors_in_images already did that
   /root/bin/make_snapshot.sh nofsck
 fi
-
-connect_usb_drives_to_host
 
 if archive_is_reachable
 then
