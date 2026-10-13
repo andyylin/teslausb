@@ -18,4 +18,6 @@ shellcheck --exclude=SC1091 \
            ./run/remountfs_rw \
            ./run/send-push-message \
            ./run/temperature_monitor \
-           ./run/waitforidle
+           ./run/waitforidle \
+           ./rotate-lockchime.sh \
+           ./tests/rotate-lockchime-test.sh
